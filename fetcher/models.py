@@ -1,7 +1,8 @@
 from sqlalchemy import Column, Integer, String, Numeric, DateTime
-from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
-from utils import pg_db
+from sqlalchemy.orm import declarative_base
+from fetcher.utils import pg_db
+
 
 Base = declarative_base()
 

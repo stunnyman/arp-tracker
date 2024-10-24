@@ -1,17 +1,16 @@
-version: '3.8'
-
 services:
   arp_fetcher:
     build: ./fetcher
-    image: arp_fetcher:v0.0.1
+    image: arp_fetcher:v0.1.0
     container_name: arp_fetcher
     environment:
       PG_DB: ${PG_DB}
       PG_USER: ${PG_USER}
       PG_PASSWORD: ${PG_PASSWORD}
+      PYTHONPATH: .
     depends_on:
       - db
-    restart: always
+    restart: unless-stopped
     networks:
       - arp_bridge
     logging:
@@ -19,6 +18,35 @@ services:
       options:
         max-size: "2m"
         max-file: "3"
+
+  visualizer:
+    build: ./visualizer
+    image: arp_visualizer:v0.1.0
+    container_name: arp_visualizer
+    environment:
+      PG_DB: ${PG_DB}
+      PG_USER: ${PG_USER}
+      PG_PASSWORD: ${PG_PASSWORD}
+      PYTHONPATH: .
+    depends_on:
+      - db
+      - arp_fetcher
+    ports:
+      - "8000:8000"
+    networks:
+      - arp_bridge
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
 
   db:
     image: postgres:17
@@ -43,6 +71,8 @@ services:
       interval: 60s
       timeout: 10s
       retries: 3
+      start_period: 30s
+    restart: unless-stopped
 
 volumes:
   db_data:

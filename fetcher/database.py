@@ -1,8 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from models import Base
-from utils import get_database_url
-
+from fetcher.models import Base
+from fetcher.utils import get_database_url
 
 engine = create_engine(get_database_url())
 Session = sessionmaker(bind=engine)
