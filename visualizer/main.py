@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 import asyncpg
 import plotly.graph_objs as go
-from visualizer.utils import get_database_url
+from visualizer.utils import get_database_url, pg_db
 
 app = FastAPI()
 
@@ -21,7 +21,7 @@ async def read_root():
     conn = await get_db_connection()
 
     try:
-        rows = await conn.fetch("SELECT timestamp, arp_value FROM arp_values ORDER BY timestamp")
+        rows = await conn.fetch(f"SELECT timestamp, arp_value FROM {pg_db} ORDER BY timestamp")
         if not rows:
             return HTMLResponse(content="No data found")
 
