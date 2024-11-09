@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-loadbalancer
+  labels:
+    app: nginx-loadbalancer
+    env: prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-loadbalancer
+      env: prod
+  template:
+    metadata:
+      labels:
+        app: nginx-loadbalancer
+        env: prod
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+          - name: http
+            containerPort: 80
+          - name: https
+            containerPort: 443
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "500m"
+          limits:
+            memory: "128Mi"
+            cpu: "1"
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: nginx-config
