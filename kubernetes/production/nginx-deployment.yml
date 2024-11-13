@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx-loadbalancer
+  name: nginx-lb
   labels:
-    app: nginx-loadbalancer
+    app: nginx-lb
     env: prod
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: nginx-loadbalancer
+      app: nginx-lb
       env: prod
   template:
     metadata:
       labels:
-        app: nginx-loadbalancer
+        app: nginx-lb
         env: prod
     spec:
       containers:
@@ -34,6 +34,18 @@ spec:
             memory: "128Mi"
             cpu: "1"
             ephemeral-storage: "150Mi"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 5
         volumeMounts:
         - name: nginx-config
           mountPath: /etc/nginx/conf.d

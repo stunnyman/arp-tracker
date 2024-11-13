@@ -17,4 +17,4 @@ EXPOSE 8000
 RUN adduser --disabled-password simple
 USER simple
 
-CMD ["uvicorn", "visualizer.main:app", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["uvicorn", "visualizer.main:app", "--host", "0.0.0.0", "--port", "8000"]

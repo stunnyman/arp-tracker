@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: nginx-loadbalancer
+  name: nginx-lb
   labels:
-    app: nginx-loadbalancer
+    app: nginx-lb
     env: prod
 spec:
   selector:
-    app: nginx-loadbalancer
+    app: nginx-lb
     env: prod
   ports:
   - name: http

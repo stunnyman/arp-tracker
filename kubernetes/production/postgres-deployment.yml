@@ -18,37 +18,58 @@ spec:
         env: prod
     spec:
       containers:
-      - name: postgres
-        image: postgres:17
-        env:
-        - name: POSTGRES_DB
-          valueFrom:
-            secretKeyRef:
-              name: db-secrets
-              key: PG_DB
-        - name: POSTGRES_USER
-          valueFrom:
-            secretKeyRef:
-              name: db-secrets
-              key: PG_USER
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: db-secrets
-              key: PG_PASSWORD
-        ports:
-        - containerPort: 5432
-        volumeMounts:
-        - mountPath: /var/lib/postgresql/data
-          name: db-data
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "500m"
-          limits:
-            memory: "512Mi"
-            cpu: "1"
+        - name: postgres
+          image: postgres:17
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: PG_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: PG_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: PG_PASSWORD
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: db-data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "500m"
+            limits:
+              memory: "512Mi"
+              cpu: "1"
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - "$(POSTGRES_USER)"
+                - -d
+                - "$POSTGRES_DB"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - "$(POSTGRES_USER)"
+                - -d
+                - "$POSTGRES_DB"
+            initialDelaySeconds: 15
+            failureThreshold: 30
+            periodSeconds: 5
       volumes:
-      - name: db-data
-        persistentVolumeClaim:
-          claimName: db-data-pvc
+        - name: db-data
+          persistentVolumeClaim:
+            claimName: db-data-pvc

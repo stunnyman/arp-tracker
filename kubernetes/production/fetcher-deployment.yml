@@ -18,37 +18,54 @@ spec:
         env: prod
     spec:
       initContainers:
-      - name: wait-for-db
-        image: busybox
-        command: ['sh', '-c', 'until nc -z -v -w60 db 5432; do echo "Waiting for postgres db...."; sleep 3; done;']
-        #THe checker will be run until the database is up
+        - name: wait-for-db
+          image: busybox
+          command: ['sh', '-c', 'until nc -z -v -w60 db 5432; do echo "Waiting for postgres db...."; sleep 3; done;']
+          #THe checker will be run until the database is up
       containers:
-      - name: fetcher-app
-        image: stunnyman/arp-fetcher:latest
-        env:
-        - name: PG_DB
-          valueFrom:
-            secretKeyRef:
-              name: db-secrets
-              key: PG_DB
-        - name: PG_USER
-          valueFrom:
-            secretKeyRef:
-              name: db-secrets
-              key: PG_USER
-        - name: PG_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: db-secrets
-              key: PG_PASSWORD
-        - name: PYTHONPATH
-          value: "."
-        resources:
-          requests:
-            memory: "64Mi"
-            cpu: "500m"
-            ephemeral-storage: "100Mi"
-          limits:
-            memory: "128Mi"
-            cpu: "1"
-            ephemeral-storage: "150Mi"
+        - name: fetcher-app
+          image: stunnyman/arp-fetcher:latest
+          env:
+            - name: PG_DB
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: PG_DB
+            - name: PG_USER
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: PG_USER
+            - name: PG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: PG_PASSWORD
+            - name: PYTHONPATH
+              value: "."
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "500m"
+              ephemeral-storage: "100Mi"
+            limits:
+              memory: "128Mi"
+              cpu: "1"
+              ephemeral-storage: "150Mi"
+          startupProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "fetcher/healthcheck.sh"
+            initialDelaySeconds: 10
+            failureThreshold: 30
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "fetcher/healthcheck.sh"
+            initialDelaySeconds: 30
+            periodSeconds: 30
