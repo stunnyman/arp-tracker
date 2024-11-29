@@ -1,0 +1,15 @@
+environment: staging
+fetcher:
+  replicas: 1
+  image:
+    tag: staging-latest
+visualizer:
+  replicas: 1
+  image:
+    tag: staging-latest
+postgres:
+  replicas: 1
+  secretsName: "db-secrets-staging"
+  volumeClaim:
+    storage: 1Gi
+host: staging-example.com

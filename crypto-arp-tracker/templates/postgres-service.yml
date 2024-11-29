@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.service.db.name }}
+  namespace: {{ .Values.environment }}
+spec:
+  selector:
+    app: {{ include "crypto-arp-tracker.name" . }}-db-{{ .Values.environment }}
+  ports:
+    - port: {{ .Values.service.db.port }}
+      targetPort: {{ .Values.service.db.targetPort }}
+  type: ClusterIP

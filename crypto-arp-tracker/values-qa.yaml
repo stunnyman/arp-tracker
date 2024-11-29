@@ -1,0 +1,15 @@
+environment: qa
+fetcher:
+  replicas: 1
+  image:
+    tag: qa-latest
+visualizer:
+  replicas: 1
+  image:
+    tag: qa-latest
+postgres:
+  replicas: 1
+  secretsName: "db-secrets-qa"
+  volumeClaim:
+    storage: 1Gi
+host: qa-example.com

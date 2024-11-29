@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "crypto-arp-tracker.name" . }}-db-pvc-{{ .Values.environment }}
+  namespace: {{ .Values.environment }}
+  labels:
+    app: {{ include "crypto-arp-tracker.name" . }}-db-{{ .Values.environment }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.postgres.volumeClaim.storage }}
+  storageClassName: {{ .Values.postgres.storageClass }}

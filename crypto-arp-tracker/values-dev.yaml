@@ -1,0 +1,15 @@
+environment: dev
+fetcher:
+  replicas: 1
+  image:
+    tag: dev-latest
+visualizer:
+  replicas: 1
+  image:
+    tag: dev-latest
+postgres:
+  replicas: 1
+  secretsName: "db-secrets-dev"
+  volumeClaim:
+    storage: 1Gi
+host: dev-example.com
