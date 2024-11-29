@@ -151,4 +151,4 @@ service:
     name: db
     port: 5432
     targetPort: 5432
-host: interesthistory.ip-ddns.com
+host: interesthistory.hopto.org

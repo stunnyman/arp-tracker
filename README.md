@@ -30,8 +30,7 @@ To enable volume management with the AWS EBS CSI driver in your Kubernetes clust
    ```sh
    helm repo add ebs-csi-driver https://kubernetes-sigs.github.io/aws-ebs-csi-driver &
    helm repo update
-
-
+   
 2. **Install the EBS CSI driver in the kube-system**:
    Run the following command:
    ```sh
@@ -59,6 +58,10 @@ To enable volume management with the AWS EBS CSI driver in your Kubernetes clust
 ]
 }`
 
-4. **[Temporary] Install helm:**
+4. **Install nginx ingress controller**:
+   ```sh
+   kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+
+5. **Install application:**
   ```sh
   helm install [name] -n prod ./crypto-arp-tracker
