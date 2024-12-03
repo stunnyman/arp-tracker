@@ -21,7 +21,7 @@ name of k8s cluster: **demo-eks**
 
 
 
-
+**These terraform modules are used with the KK platform (there are limitations) where the project is deployed, in the future a full TF module will be added.**
 ## Install and Configure AWS EBS CSI Driver
 To enable volume management with the AWS EBS CSI driver in your Kubernetes cluster, follow these steps:
 
