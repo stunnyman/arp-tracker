@@ -1,0 +1,115 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Type environment name. [prod/qa/staging/dev]'
+        required: true
+        default: 'prod'
+      values:
+        description: 'Path to values file. [./helm/values.yml]'
+        required: true
+        default: './helm/values.yml'
+
+jobs:
+  deploy-prod:
+    runs-on: ubuntu-22.04
+    permissions:
+      id-token: write   # This is required for requesting the JWT
+      contents: read
+    env:
+      DOCKER_USERNAME:                    ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD:                    ${{ secrets.DOCKER_PASSWORD }}
+      AWS_REGION:                         us-east-1
+      EKS_NAME:                           demo-eks
+      FETCHER:                            "arp-fetcher"
+      VISUALIZER:                         "arp-visualizer"
+      LATEST:                             "latest"
+      NAMESPACE:                          ${{ github.event.inputs.environment }}
+      HELM_NAME:                          "cat"
+      VALUES_FILE:                        ${{ github.event.inputs.values }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install kubectl
+        run: make kubectl
+
+      - name: Configure Kube config for EKS
+        run: |
+          make kubeconfig
+
+      - name: Install helm
+        run: make helm
+
+      - name: Login to Docker Hub
+        run: make docker_login
+
+      - name: Is changed directories
+        run: |
+          git fetch origin main
+          changes=$(git diff --name-only HEAD~1 HEAD)
+        
+          if echo "$changes" | grep -q '^fetcher/'; then
+            echo "FETCHER_CHANGED=true" >> $GITHUB_ENV
+          fi
+        
+          if echo "$changes" | grep -q '^visualizer/'; then
+            echo "VISUALIZER_CHANGED=true" >> $GITHUB_ENV
+          fi
+
+      - name: Build, Push the image [Fetcher]
+        if: env.FETCHER_CHANGED == 'true'
+        run: |
+          make docker_build IMAGE_NAME=${{ env.FETCHER }} NAMESPACE=${{ env.NAMESPACE }} IMAGE_TAG=${{ env.LATEST }} FILE_PATH="./fetcher"
+          make docker_tag IMAGE_NAME=${{ env.FETCHER }} NAMESPACE=${{ env.NAMESPACE }} IMAGE_TAG=${{ env.LATEST }} GITHUB_SHA=${{ github.sha }}
+          make docker_push IMAGE_NAME=${{ env.FETCHER }} NAMESPACE=${{ env.NAMESPACE }} IMAGE_TAG=${{ env.LATEST }} GITHUB_SHA=${{ github.sha }}
+
+      - name: Build, Push the image [Visualizer]
+        if: env.VISUALIZER_CHANGED == 'true'
+        run: |
+            make docker_build IMAGE_NAME=${{ env.VISUALIZER }} NAMESPACE=${{ env.NAMESPACE }} IMAGE_TAG=${{ env.LATEST }} FILE_PATH="./visualizer"
+            make docker_tag IMAGE_NAME=${{ env.VISUALIZER }} NAMESPACE=${{ env.NAMESPACE }} IMAGE_TAG=${{ env.LATEST }} GITHUB_SHA=${{ github.sha }}
+            make docker_push IMAGE_NAME=${{ env.VISUALIZER }} NAMESPACE=${{ env.NAMESPACE }} IMAGE_TAG=${{ env.LATEST }} GITHUB_SHA=${{ github.sha }}
+
+      - name: Deploy new Images to Staging env
+        if: ${{ env.VISUALIZER_CHANGED == 'true' || env.FETCHER_CHANGED == 'true'}}
+        run: |
+          helm_upgrade_command="helm upgrade --install ${{ env.HELM_NAME }} ./helm -n ${{ env.NAMESPACE }} -f ${{ env.VALUES_FILE }}"
+      
+          helm_status=$(helm list -n ${{ env.NAMESPACE }} --filter '^${{ env.HELM_NAME }}$' -q)
+      
+          if [[ -z "$helm_status" ]]; then
+            apt install yq -y
+            current_fetcher_tag=$(yq e '.fetcher.image.tag' ${{ env.VALUES_FILE }})
+            current_visualizer_tag=$(yq e '.visualizer.image.tag' ${{ env.VALUES_FILE }})
+          else
+            current_fetcher_tag=$(helm get values ${{ env.HELM_NAME }} -n ${{ env.NAMESPACE }} --all --output json | jq -r '.fetcher.image.tag')
+            current_visualizer_tag=$(helm get values ${{ env.HELM_NAME }} -n ${{ env.NAMESPACE }} --all --output json | jq -r '.visualizer.image.tag')
+          fi
+
+          if [[ "${{ env.FETCHER_CHANGED }}" == "true" ]]; then
+            helm_upgrade_command="$helm_upgrade_command --set fetcher.image.tag=${{ env.NAMESPACE }}_${{ github.sha }}"
+          else
+            helm_upgrade_command="$helm_upgrade_command --set fetcher.image.tag=${current_fetcher_tag}"
+          fi
+
+          if [[ "${{ env.VISUALIZER_CHANGED }}" == "true" ]]; then
+            helm_upgrade_command="$helm_upgrade_command --set visualizer.image.tag=${{ env.NAMESPACE }}_${{ github.sha }}"
+          else
+            helm_upgrade_command="$helm_upgrade_command --set visualizer.image.tag=${current_visualizer_tag}"
+          fi
+          $helm_upgrade_command

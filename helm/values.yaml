@@ -1,0 +1,32 @@
+environment: prod
+fetcher:
+  image:
+    repository: stunnyman/arp-fetcher
+    tag: latest
+  replicas: 1
+visualizer:
+  image:
+    repository: stunnyman/arp-visualizer
+    tag: latest
+  replicas: 1
+postgres:
+  image: postgres:17
+  replicas: 1
+  secretsName: db-secrets
+  volumeClaim:
+    storage: 1Gi
+  storageClass: gp2
+service:
+  fetcher:
+    name: fetcher-app
+    port: 80
+    targetPort: 80
+  visualizer:
+    name: visualizer-app
+    port: 80
+    targetPort: 8000
+  db:
+    name: db
+    port: 5432
+    targetPort: 5432
+host: interesthistory.hopto.org
